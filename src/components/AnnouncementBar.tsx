@@ -1,16 +1,16 @@
 export function AnnouncementBar() {
   const items = [
-    "FREE shipping over ₹699",
-    "Cash on Delivery available",
-    "Ships in 24 hours · Tracking on WhatsApp",
-    "7-day easy returns",
-    "Razorpay secure UPI checkout"
+    "Wholesale & Export enquiries welcome",
+    "Worldwide shipping",
+    "Trusted since 1982 · Rui Mandi, Sadar Bazar, Delhi",
+    "Bulk orders & video-call shopping",
+    "Bridal · Polki & Kundan · Korean Accessories · Fashion"
   ];
   return (
-    <div className="bg-ink text-white text-xs sm:text-sm overflow-hidden">
+    <div className="bg-ink text-gold-light text-[11px] sm:text-xs overflow-hidden tracking-wide">
       <div className="flex animate-marquee whitespace-nowrap py-2">
         {[...items, ...items].map((t, i) => (
-          <span key={i} className="px-8 opacity-90">{t} ·</span>
+          <span key={i} className="px-8 opacity-90">{t} <span className="text-gold">✦</span></span>
         ))}
       </div>
     </div>

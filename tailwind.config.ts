@@ -5,18 +5,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: { DEFAULT: "#0B0B0F", soft: "#1a1a22" },
-        brand: { DEFAULT: "#FF3D5A", dark: "#D62742", light: "#FFE5EA" },
-        accent: { DEFAULT: "#FFD60A" },
-        muted: { DEFAULT: "#6B7280", soft: "#F3F4F6" }
+        // Warm near-black, drawn from the Bhagwan "BJ" monogram
+        ink: { DEFAULT: "#14110E", soft: "#3A332B" },
+        // Champagne gold — the heritage accent
+        gold: { DEFAULT: "#C5A150", dark: "#A8842F", light: "#EADCAA" },
+        // Ivory / cream backgrounds
+        ivory: { DEFAULT: "#FAF6EF", soft: "#F2ECE1" },
+        // Bridal accent (deep wine, from Polki settings)
+        wine: { DEFAULT: "#6E2433", dark: "#511826" },
+        muted: { DEFAULT: "#8A8175", soft: "#F2ECE1" },
+        // Back-compat aliases so legacy admin/cart classes stay on-palette
+        brand: { DEFAULT: "#6E2433", dark: "#511826", light: "#F3E7E9" },
+        accent: { DEFAULT: "#C5A150" }
       },
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Inter"]
+        serif: ["var(--font-cormorant)", "Cormorant Garamond", "Georgia", "serif"],
+        sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "Segoe UI", "sans-serif"]
       },
+      letterSpacing: { luxe: "0.18em" },
       animation: {
-        "pulse-slow": "pulse 3s ease-in-out infinite",
-        "marquee": "marquee 30s linear infinite",
-        "slide-up": "slideUp 0.4s ease-out"
+        "marquee": "marquee 32s linear infinite",
+        "slide-up": "slideUp 0.5s ease-out"
       },
       keyframes: {
         marquee: { "0%": { transform: "translateX(0)" }, "100%": { transform: "translateX(-50%)" } },

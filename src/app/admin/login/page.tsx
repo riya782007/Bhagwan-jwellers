@@ -21,7 +21,7 @@ export default function AdminLogin() {
     <div className="min-h-[70vh] flex items-center justify-center px-4">
       <form onSubmit={submit} className="w-full max-w-sm border border-black/5 rounded-2xl p-6 space-y-3">
         <h1 className="font-black text-2xl">Admin login</h1>
-        <p className="text-xs text-muted">NewVora HQ · founders only</p>
+        <p className="text-xs text-muted">Bhagwan Jewellers HQ · staff only</p>
         <input value={email} onChange={e => setEmail(e.target.value)} placeholder="email" className="w-full border rounded-xl px-3 py-2 text-sm" />
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="password" className="w-full border rounded-xl px-3 py-2 text-sm" />
         {err && <div className="text-brand text-sm">{err}</div>}

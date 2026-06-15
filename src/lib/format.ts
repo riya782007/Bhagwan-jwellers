@@ -6,4 +6,4 @@ export const percentOff = (price: number, compareAt?: number | null) => {
   return Math.round(((compareAt - price) / compareAt) * 100);
 };
 
-export const orderNumber = (n: number) => `NV-${String(n).padStart(5, "0")}`;
+export const orderNumber = (n: number) => `BJ-${String(n).padStart(5, "0")}`;

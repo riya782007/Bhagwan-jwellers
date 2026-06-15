@@ -34,7 +34,7 @@ function AdminNav() {
   return (
     <nav className="bg-white border-b border-black/5">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/admin" className="font-black">NewVora <span className="text-brand">HQ</span></Link>
+        <Link href="/admin" className="font-black">Bhagwan Jewellers <span className="text-gold-dark">HQ</span></Link>
         <div className="hidden sm:flex items-center gap-1 text-sm">
           {links.map(l => <Link key={l.href} href={l.href} className="px-3 py-1.5 rounded-full hover:bg-muted-soft">{l.label}</Link>)}
         </div>

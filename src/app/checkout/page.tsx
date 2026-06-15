@@ -63,7 +63,7 @@ export default function CheckoutPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: data.razorpay.amount,
         currency: data.razorpay.currency,
-        name: "NewVora",
+        name: "Bhagwan Jewellers",
         description: `Order ${data.order.number}`,
         order_id: data.razorpay.id,
         prefill: { name: form.name, email: form.email, contact: form.phone },
