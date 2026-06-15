@@ -24,6 +24,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 function AdminNav() {
   const links = [
     { href: "/admin", label: "Dashboard" },
+    { href: "/admin/add", label: "✦ Add (Photo+Voice)" },
     { href: "/admin/products", label: "Products" },
     { href: "/admin/trending", label: "Trending 🔥" },
     { href: "/admin/suppliers", label: "Suppliers" },
