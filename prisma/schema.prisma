@@ -1,0 +1,233 @@
+// NewVora schema — start with SQLite for dev, switch provider to "postgresql" for prod.
+// Switching: change provider + DATABASE_URL, then `npx prisma db push`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Catalogue ----------
+
+model Product {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  title         String
+  tagline       String?           // 1-line punch ("Stops back pain in 7 days")
+  description   String            // long form (markdown)
+  bullets       String            // JSON array of 3 benefit bullets
+  price         Int               // in paise
+  compareAt     Int?              // strikethrough MRP, paise
+  currency      String    @default("INR")
+  imagesJson    String            // JSON array of image URLs
+  videoUrl      String?           // hero hook video (Cloudinary / YouTube short)
+  category      String?
+  tags          String?           // comma separated for search
+  faqJson       String?           // JSON [{q,a}]
+  founderNote   String?           // "From Riya, founder, NewVora ..."
+  weightGrams   Int?
+  isPublished   Boolean   @default(false)
+  isHero        Boolean   @default(false)  // pinned to top of home
+  stock         Int       @default(50)
+  soldCount     Int       @default(0)      // for social proof
+  rating        Float     @default(4.7)
+  reviewCount   Int       @default(0)
+  costPrice     Int?              // landed cost (paise) for margin calc
+  trendScore    Float?            // from trending engine
+  sourceUrl     String?           // origin (AliExpress/Amazon)
+  supplierId    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  variants      Variant[]
+  reviews       Review[]
+  orderItems    OrderItem[]
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  contentIdeas  ContentIdea[]
+
+  @@index([isPublished, isHero])
+  @@index([category])
+}
+
+model Variant {
+  id         String  @id @default(cuid())
+  productId  String
+  name       String           // "Black / Large"
+  sku        String  @unique
+  price      Int?             // override product price
+  stock      Int     @default(20)
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Orders & customers ----------
+
+model Customer {
+  id         String   @id @default(cuid())
+  name       String
+  phone      String   @unique
+  email      String?
+  pin        String?
+  city       String?
+  state      String?
+  createdAt  DateTime @default(now())
+  orders     Order[]
+}
+
+// SQLite has no enums. We use strings + app-level validation.
+// OrderStatus: PENDING | PAID | COD_CONFIRMED | PACKED | SHIPPED | DELIVERED | CANCELLED | REFUNDED
+// PaymentMethod: RAZORPAY | COD
+
+model Order {
+  id              String        @id @default(cuid())
+  number          String        @unique         // human-readable: NV-00001
+  customerId      String
+  status          String        @default("PENDING")
+  paymentMethod   String
+  subtotal        Int
+  shipping        Int           @default(0)
+  discount        Int           @default(0)
+  total           Int
+  currency        String        @default("INR")
+  shippingAddress String                          // JSON
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  trackingUrl     String?
+  awb             String?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  customer        Customer      @relation(fields: [customerId], references: [id])
+  items           OrderItem[]
+
+  @@index([status])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  productId   String
+  variantName String?
+  title       String
+  price       Int
+  quantity    Int
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product @relation(fields: [productId], references: [id])
+}
+
+// ---------- Reviews ----------
+
+model Review {
+  id         String   @id @default(cuid())
+  productId  String
+  name       String
+  rating     Int                       // 1-5
+  title      String?
+  body       String
+  imageUrl   String?
+  city       String?
+  isVerified Boolean  @default(false)
+  isApproved Boolean  @default(true)   // seeded reviews approved by default
+  createdAt  DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, isApproved])
+}
+
+// ---------- Suppliers ----------
+
+model Supplier {
+  id            String   @id @default(cuid())
+  source        String                       // "indiamart" | "meesho" | "aliexpress" | "manual"
+  name          String
+  contactName   String?
+  phone         String?
+  email         String?
+  whatsapp      String?
+  city          String?
+  state         String?
+  country       String   @default("IN")
+  gstNumber     String?
+  url           String?
+  productMatch  String?                     // free-text product they supply
+  unitPrice     Int?                        // best price in paise
+  moq           Int?
+  rating        Float?
+  notes         String?
+  createdAt     DateTime @default(now())
+  products      Product[]
+}
+
+// ---------- Trending / winning-product engine ----------
+
+model TrendingProduct {
+  id             String   @id @default(cuid())
+  source         String                       // "aliexpress" | "amazon_in" | "google_trends" | "meesho" | "youtube"
+  externalId     String?                      // source-specific id
+  title          String
+  url            String?
+  imageUrl       String?
+  videoUrl       String?
+  priceSource    Int?                         // paise — landed cost estimate
+  priceTarget    Int?                         // paise — recommended sell price
+  currency       String   @default("INR")
+  category       String?
+  trendVelocity  Float    @default(0)         // 7-day growth signal 0-1
+  marginPotent   Float    @default(0)         // 0-1
+  visualWow      Float    @default(0)         // 0-1
+  problemSolving Float    @default(0)         // 0-1
+  impulse        Float    @default(0)         // 0-1
+  shipFriendly   Float    @default(0)         // 0-1
+  competitionIN  Float    @default(0)         // 0-1 (lower = better; we invert)
+  supplierFound  Boolean  @default(false)
+  score          Float    @default(0)         // computed 0-100
+  status         String   @default("NEW")     // NEW | IMPORTED | SKIPPED
+  rawJson        String?                      // full source payload
+  fetchedAt      DateTime @default(now())
+
+  @@index([status, score])
+  @@index([source, externalId])
+}
+
+// ---------- Admin auth ----------
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         String   @default("OWNER")     // OWNER | STAFF
+  createdAt    DateTime @default(now())
+}
+
+// ---------- Content / YouTube ----------
+
+model ContentIdea {
+  id         String   @id @default(cuid())
+  productId  String?
+  title      String                                // hook line
+  hook       String                                // 1-3s opener
+  script     String                                // 30s script
+  format     String   @default("YT_SHORT")        // YT_SHORT | REEL | PIN
+  status     String   @default("IDEA")            // IDEA | SHOT | POSTED
+  metricsJson String?                              // views/CTR/sales after post
+  createdAt  DateTime @default(now())
+  product    Product? @relation(fields: [productId], references: [id])
+}
+
+// ---------- Lead capture / abandoned cart ----------
+
+model Lead {
+  id         String   @id @default(cuid())
+  phone      String?
+  email      String?
+  source     String?                              // "exit_intent" | "pre_checkout" | "newsletter"
+  cartJson   String?                              // saved cart for recovery
+  recovered  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([recovered, createdAt])
+}

@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html, body { height: 100%; }
+body {
+  @apply bg-white text-ink antialiased;
+}
+
+/* Marquee for "Free shipping over ₹699 · Same-day dispatch · COD available" */
+.marquee-track { display: inline-flex; gap: 4rem; padding-right: 4rem; }
+
+/* Sticky CTA shadow */
+.cta-shadow { box-shadow: 0 -8px 24px rgba(0,0,0,0.08); }
+
+/* Subtle ring on focus for inputs */
+input:focus, textarea:focus, select:focus { @apply outline-none ring-2 ring-brand/40 border-brand/40; }
