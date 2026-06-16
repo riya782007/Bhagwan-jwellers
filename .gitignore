@@ -11,3 +11,5 @@ prisma/dev.db-journal
 .vercel
 .tsbuildinfo
 next-env.d.ts
+public/hero-reel.mp4
+public/store-reel.mp4

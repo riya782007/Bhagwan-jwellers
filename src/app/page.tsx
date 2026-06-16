@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { ProductCard } from "@/components/ProductCard";
+import Image from "next/image";
 import Link from "next/link";
 
 export const revalidate = 60;
@@ -8,48 +9,61 @@ const WA = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919654353586").replace(/
 const waHref = `https://wa.me/${WA}?text=${encodeURIComponent("Hello Bhagwan Jewellers, I would like to enquire about your collection / a wholesale order.")}`;
 
 const CATEGORIES = [
-  { name: "Bridal Jewellery", note: "Statement sets for the wedding season" },
-  { name: "Polki & Kundan", note: "Handcrafted heritage pieces" },
-  { name: "Korean Hair Accessories", note: "Trending clips, pins & bands" },
-  { name: "Fashion Jewellery", note: "Everyday & western styles" }
+  { name: "Bridal Jewellery", note: "Complete sets for the wedding season", img: "/products/1b.jpg" },
+  { name: "Polki & Kundan", note: "Handcrafted heritage pieces", img: "/products/2b.jpg" },
+  { name: "Fashion Jewellery", note: "Antique, temple & everyday styles", img: "/products/5b.jpg" },
+  { name: "Korean Hair Accessories", note: "Trending clips, pins & bands", img: null as string | null }
 ];
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams?: { cat?: string } }) {
+  const activeCat = searchParams?.cat;
+
   const all = await db.product.findMany({
-    where: { isPublished: true },
-    orderBy: [{ soldCount: "desc" }, { createdAt: "desc" }],
-    take: 12
+    where: { isPublished: true, ...(activeCat ? { category: activeCat } : {}) },
+    orderBy: [{ isHero: "desc" }, { soldCount: "desc" }, { createdAt: "desc" }],
+    take: 24
   });
 
   return (
     <div>
       {/* HERO */}
       <section className="relative overflow-hidden bg-ink text-ivory">
-        <div className="absolute inset-0 opacity-[0.15] pointer-events-none"
-             style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #C5A150 0, transparent 40%), radial-gradient(circle at 85% 75%, #6E2433 0, transparent 45%)" }} />
-        <div className="relative max-w-4xl mx-auto px-4 py-20 sm:py-28 text-center">
-          <p className="text-gold text-xs sm:text-sm uppercase tracking-luxe">Wholesale Bridal &amp; Fashion Jewellery</p>
-          <h1 className="mt-5 font-serif text-4xl sm:text-6xl leading-[1.08]">
-            Handcrafted jewellery,<br/>trusted by buyers <span className="text-gold">across the world</span>.
-          </h1>
-          <p className="mt-5 text-ivory/70 text-base sm:text-lg max-w-2xl mx-auto">
-            Four decades of craftsmanship from Rui Mandi, Sadar Bazar — bridal sets, Polki &amp; Kundan,
-            Korean hair accessories and fashion jewellery, supplied in bulk to retailers and exporters worldwide.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3 justify-center">
-            <Link href="#collection" className="rounded-full bg-gold text-ink px-7 py-3 font-medium text-sm hover:bg-gold-light transition">
-              Explore the Collection
-            </Link>
-            <a href={waHref} target="_blank" rel="noreferrer"
-               className="rounded-full border border-gold/50 text-gold px-7 py-3 font-medium text-sm hover:bg-white/5 transition">
-              Enquire on WhatsApp
-            </a>
+        <div className="absolute inset-0 opacity-[0.13] pointer-events-none"
+             style={{ backgroundImage: "radial-gradient(circle at 18% 18%, #C5A150 0, transparent 42%), radial-gradient(circle at 88% 80%, #6E2433 0, transparent 46%)" }} />
+        <div className="relative max-w-6xl mx-auto px-4 py-16 sm:py-20 grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
+          <div className="text-center lg:text-left">
+            <p className="text-gold text-xs sm:text-sm uppercase tracking-luxe">Wholesale Bridal &amp; Fashion Jewellery</p>
+            <h1 className="mt-4 font-serif text-4xl sm:text-5xl xl:text-6xl leading-[1.08]">
+              Handcrafted jewellery,<br/>trusted by buyers <span className="text-gold">across the world</span>.
+            </h1>
+            <p className="mt-5 text-ivory/70 text-base sm:text-lg max-w-xl mx-auto lg:mx-0">
+              Four decades of craftsmanship from Rui Mandi, Sadar Bazar — bridal sets, Polki &amp; Kundan,
+              Korean hair accessories and fashion jewellery, supplied in bulk to retailers and exporters worldwide.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3 justify-center lg:justify-start">
+              <Link href="#collection" className="rounded-full bg-gold text-ink px-7 py-3 font-medium text-sm hover:bg-gold-light transition">
+                Explore the Collection
+              </Link>
+              <a href={waHref} target="_blank" rel="noreferrer"
+                 className="rounded-full border border-gold/50 text-gold px-7 py-3 font-medium text-sm hover:bg-white/5 transition">
+                Enquire on WhatsApp
+              </a>
+            </div>
+            <div className="mt-10 grid grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0">
+              <div><div className="font-serif text-2xl text-gold">1982</div><div className="text-[11px] uppercase tracking-wide text-ivory/60">Established</div></div>
+              <div><div className="font-serif text-2xl text-gold">Worldwide</div><div className="text-[11px] uppercase tracking-wide text-ivory/60">Export</div></div>
+              <div><div className="font-serif text-2xl text-gold">Bulk · MOQ</div><div className="text-[11px] uppercase tracking-wide text-ivory/60">Wholesale</div></div>
+            </div>
           </div>
-          <div className="mx-auto mt-12 max-w-xl gold-rule" />
-          <div className="mt-6 grid grid-cols-3 gap-4 text-center max-w-xl mx-auto">
-            <div><div className="font-serif text-2xl text-gold">1982</div><div className="text-[11px] uppercase tracking-wide text-ivory/60">Established</div></div>
-            <div><div className="font-serif text-2xl text-gold">Worldwide</div><div className="text-[11px] uppercase tracking-wide text-ivory/60">Export</div></div>
-            <div><div className="font-serif text-2xl text-gold">Bulk · MOQ</div><div className="text-[11px] uppercase tracking-wide text-ivory/60">Wholesale</div></div>
+
+          {/* Real store reel */}
+          <div className="relative mx-auto w-full max-w-[300px]">
+            <div className="absolute -inset-3 rounded-[2.4rem] bg-gold/10 blur-xl" />
+            <div className="relative rounded-[2rem] border border-gold/30 overflow-hidden shadow-2xl aspect-[9/16] bg-black">
+              <video src="/hero-reel-web.mp4" poster="/hero-reel-poster.jpg" autoPlay muted loop playsInline preload="metadata"
+                     className="w-full h-full object-cover" />
+            </div>
+            <p className="mt-3 text-center text-[11px] uppercase tracking-luxe text-ivory/50">Heritage Elegance · our latest collection</p>
           </div>
         </div>
       </section>
@@ -68,32 +82,69 @@ export default async function HomePage() {
       <section className="max-w-6xl mx-auto px-4 py-16">
         <div className="text-center">
           <p className="text-gold-dark text-xs uppercase tracking-luxe">What we craft</p>
-          <h2 className="font-serif text-3xl sm:text-4xl mt-2">Explore the Collection</h2>
+          <h2 className="font-serif text-3xl sm:text-4xl mt-2">Shop by Category</h2>
         </div>
         <div className="mt-10 grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {CATEGORIES.map(c => (
-            <Link key={c.name} href="#collection"
-                  className="group relative rounded-2xl border border-gold/25 bg-white p-6 min-h-[180px] flex flex-col justify-end overflow-hidden hover:border-gold transition">
-              <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-gold/10 group-hover:bg-gold/20 transition" />
-              <h3 className="relative font-serif text-xl text-ink">{c.name}</h3>
-              <p className="relative text-sm text-muted mt-1">{c.note}</p>
-              <span className="relative mt-3 text-xs uppercase tracking-wide text-gold-dark">View →</span>
-            </Link>
-          ))}
+          {CATEGORIES.map(c => {
+            const active = activeCat === c.name;
+            return (
+              <Link key={c.name} href={`/?cat=${encodeURIComponent(c.name)}#collection`}
+                    className={`group relative rounded-2xl overflow-hidden aspect-[4/5] flex flex-col justify-end transition ${active ? "ring-2 ring-gold" : "ring-1 ring-gold/20 hover:ring-gold"}`}>
+                {c.img ? (
+                  <Image src={c.img} alt={c.name} fill sizes="(min-width:1024px) 25vw, 50vw" className="object-cover group-hover:scale-105 transition duration-700" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-ink to-wine-dark" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
+                <div className="relative p-4">
+                  <h3 className="font-serif text-lg sm:text-xl text-ivory leading-tight">{c.name}</h3>
+                  <p className="text-xs text-ivory/70 mt-0.5">{c.note}</p>
+                  <span className="mt-2 inline-block text-[11px] uppercase tracking-wide text-gold">{active ? "Viewing →" : "View →"}</span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
       {/* COLLECTION GRID */}
       <section id="collection" className="max-w-6xl mx-auto px-4 pb-16">
         <div className="text-center mb-10">
-          <p className="text-gold-dark text-xs uppercase tracking-luxe">Latest pieces</p>
-          <h2 className="font-serif text-3xl sm:text-4xl mt-2">From Our Atelier</h2>
+          <p className="text-gold-dark text-xs uppercase tracking-luxe">{activeCat ? "Category" : "Latest pieces"}</p>
+          <h2 className="font-serif text-3xl sm:text-4xl mt-2">{activeCat || "From Our Atelier"}</h2>
           <p className="text-muted text-sm mt-2 max-w-xl mx-auto">
-            A selection from our current collection. For pricing, bulk quantities and export orders, enquire on WhatsApp.
+            {activeCat
+              ? <>Showing {activeCat}. <Link href="/#collection" className="text-gold-dark underline">View all pieces</Link></>
+              : "A selection from our current collection. For pricing, bulk quantities and export orders, enquire on WhatsApp."}
           </p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-          {all.map(p => <ProductCard key={p.id} {...p} />)}
+        {all.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+            {all.map(p => <ProductCard key={p.id} {...p} />)}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted">New pieces in this category are coming soon.</p>
+            <a href={waHref} target="_blank" rel="noreferrer" className="inline-block mt-4 rounded-full bg-ink text-gold-light px-6 py-3 text-sm font-medium">Enquire on WhatsApp</a>
+          </div>
+        )}
+      </section>
+
+      {/* EDITORIAL — STORE GALLERY */}
+      <section className="bg-ink text-ivory">
+        <div className="max-w-6xl mx-auto px-4 py-16">
+          <div className="text-center">
+            <p className="text-gold text-xs uppercase tracking-luxe">From our counter</p>
+            <h2 className="font-serif text-3xl sm:text-4xl mt-2">Straight from our Rui Mandi store</h2>
+            <p className="text-ivory/60 text-sm mt-2 max-w-xl mx-auto">A glimpse of the trays our buyers choose from — earrings, bracelets, chains and more, restocked constantly.</p>
+          </div>
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {["/products/store-1.jpg", "/products/store-2.jpg", "/products/store-3.jpg"].map((src, i) => (
+              <div key={i} className="relative aspect-[4/5] rounded-2xl overflow-hidden border border-gold/20">
+                <Image src={src} alt="Bhagwan Jewellers store display" fill sizes="(min-width:640px) 33vw, 100vw" className="object-cover hover:scale-105 transition duration-700" />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
