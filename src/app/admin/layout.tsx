@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdmin } from "@/lib/auth";
+import { AdminVoice } from "@/components/AdminVoice";
 import { ReactNode } from "react";
 import { headers } from "next/headers";
 
@@ -17,6 +18,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <div className="min-h-screen bg-muted-soft">
       {!isLogin && <AdminNav />}
       <div className="max-w-6xl mx-auto px-4 py-6">{children}</div>
+      {!isLogin && <AdminVoice />}
     </div>
   );
 }
