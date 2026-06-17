@@ -36,6 +36,7 @@ export function Navbar() {
             <Search className="w-4 h-4 text-muted" />
             <input className="bg-transparent text-sm w-full" placeholder="Search the collection…" />
           </div>
+          <Link href="/admin" className="text-xs sm:text-sm text-ink/55 hover:text-gold-dark transition whitespace-nowrap">Admin</Link>
           <a href={waHref} target="_blank" rel="noreferrer"
              className="inline-flex items-center rounded-full bg-ink text-gold-light px-4 py-2 text-sm font-medium hover:bg-ink-soft transition whitespace-nowrap">
             Enquire

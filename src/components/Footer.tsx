@@ -46,7 +46,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-white/10 py-5 text-center text-xs text-ivory/50">
-        © {new Date().getFullYear()} Bhagwan Jewellers · Rui Mandi, Sadar Bazar, Delhi · Established 1982
+        © {new Date().getFullYear()} Bhagwan Jewellers · Rui Mandi, Sadar Bazar, Delhi · Established 1982 · <Link href="/admin" className="hover:text-gold">Owner login</Link>
       </div>
     </footer>
   );
