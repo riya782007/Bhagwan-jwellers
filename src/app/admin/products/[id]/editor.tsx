@@ -1,6 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { Upload, Trash2, X, Loader2, Eye, Check } from "lucide-react";
+
+const CATEGORIES = ["Bridal Jewellery", "Polki & Kundan", "Korean Hair Accessories", "Fashion Jewellery"];
 
 export function ProductEditor({ product }: { product: any }) {
   const r = useRouter();
@@ -8,147 +12,153 @@ export function ProductEditor({ product }: { product: any }) {
     ...product,
     bullets: parseJSON<string[]>(product.bullets) ?? [],
     images: parseJSON<string[]>(product.imagesJson) ?? [],
-    faq: parseJSON<{q:string;a:string}[]>(product.faqJson) ?? []
+    faq: parseJSON<{ q: string; a: string }[]>(product.faqJson) ?? []
   });
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [showAdv, setShowAdv] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const save = async () => {
+  const rupees = (paise: number) => (paise ? Math.round(paise / 100) : 0);
+
+  async function uploadPhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploading(true); setMsg(null);
+    try {
+      const fd = new FormData();
+      files.forEach((f) => fd.append("files", f));
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const j = await res.json();
+      if (!res.ok) setMsg(j.error || "Upload failed");
+      else setP({ ...p, images: [...p.images, ...j.urls] });
+    } catch { setMsg("Upload failed"); }
+    finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
+  }
+
+  function removeImage(i: number) {
+    setP({ ...p, images: p.images.filter((_: string, idx: number) => idx !== i) });
+  }
+
+  async function save() {
     setBusy(true); setMsg(null);
     const body = {
       title: p.title, slug: p.slug, tagline: p.tagline, description: p.description,
-      bullets: JSON.stringify(p.bullets),
-      imagesJson: JSON.stringify(p.images.filter(Boolean)),
-      faqJson: JSON.stringify(p.faq.filter((x: any) => x.q || x.a)),
+      bullets: JSON.stringify((p.bullets as string[]).filter(Boolean)),
+      imagesJson: JSON.stringify((p.images as string[]).filter(Boolean)),
+      faqJson: JSON.stringify((p.faq as any[]).filter((x) => x.q || x.a)),
       videoUrl: p.videoUrl, category: p.category, tags: p.tags, founderNote: p.founderNote,
       price: Number(p.price), compareAt: p.compareAt ? Number(p.compareAt) : null,
-      costPrice: p.costPrice ? Number(p.costPrice) : null,
-      stock: Number(p.stock), isPublished: !!p.isPublished, isHero: !!p.isHero,
-      rating: Number(p.rating)
+      stock: Number(p.stock), isPublished: !!p.isPublished, isHero: !!p.isHero
     };
     const res = await fetch(`/api/admin/products/${p.id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
     });
     setBusy(false);
-    if (res.ok) { setMsg("Saved ✓"); r.refresh(); }
-    else { const d = await res.json().catch(()=>({})); setMsg(d.error || "Save failed"); }
-  };
+    if (res.ok) { setMsg("Saved ✓"); r.refresh(); } else { const d = await res.json().catch(() => ({})); setMsg(d.error || "Save failed"); }
+  }
 
-  const seedReviews = async () => {
-    const seeds = [
-      { name: "Aarav S.", city: "Mumbai", rating: 5, title: "Worth every rupee", body: "Got it in 4 days. Build is way better than expected." },
-      { name: "Priya K.", city: "Bengaluru", rating: 5, title: "Made my morning easier", body: "Saves time daily. Smart buy." },
-      { name: "Rohan M.", city: "Delhi", rating: 4, title: "Good quality", body: "Works as advertised." },
-      { name: "Anjali R.", city: "Pune", rating: 5, title: "Gifted to mom", body: "She loves it. Solid build." }
-    ];
-    for (const s of seeds) {
-      await fetch("/api/admin/reviews", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...s, productId: p.id, isApproved: true, isVerified: true })
-      });
-    }
-    setMsg("Seeded 4 reviews ✓");
-    r.refresh();
-  };
+  async function remove() {
+    if (!confirm(`Delete "${p.title}"? This cannot be undone.`)) return;
+    setBusy(true);
+    const res = await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
+    if (res.ok) r.push("/admin/products"); else { setBusy(false); setMsg("Delete failed"); }
+  }
+
+  const catOptions = CATEGORIES.includes(p.category) ? CATEGORIES : [p.category, ...CATEGORIES].filter(Boolean);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-black text-2xl">Edit · {p.title}</h1>
+    <div className="space-y-4 max-w-3xl">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="font-serif text-2xl text-ink">Edit piece</h1>
         <div className="flex gap-2">
-          <a href={`/product/${p.slug}`} target="_blank" className="border rounded-full px-4 py-2 text-sm">View</a>
-          <button onClick={save} disabled={busy} className="bg-brand text-white rounded-full px-5 py-2 text-sm font-semibold disabled:opacity-50">
-            {busy ? "Saving…" : "Save"}
+          <a href={`/product/${p.slug}`} target="_blank" className="inline-flex items-center gap-1 border border-black/15 rounded-full px-4 py-2 text-sm"><Eye className="w-4 h-4" /> View</a>
+          <button onClick={save} disabled={busy} className="inline-flex items-center gap-1 bg-ink text-gold-light rounded-full px-5 py-2 text-sm font-semibold disabled:opacity-50">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Save
           </button>
         </div>
       </div>
 
-      {msg && <div className="bg-brand-light text-brand-dark rounded-xl p-3 text-sm">{msg}</div>}
+      {msg && <div className="bg-ivory-soft border border-gold/20 text-ink rounded-xl p-3 text-sm">{msg}</div>}
 
-      <div className="grid lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-4">
-          <Card title="Basics">
-            <Field label="Title" value={p.title} on={(v:string)=>setP({...p,title:v})} />
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Slug" value={p.slug} on={(v:string)=>setP({...p,slug:v})} />
-              <Field label="Category" value={p.category ?? ""} on={(v:string)=>setP({...p,category:v})} />
-            </div>
-            <Field label="Tagline (1-line punch)" value={p.tagline ?? ""} on={(v:string)=>setP({...p,tagline:v})} />
-            <Field label="Tags (comma)" value={p.tags ?? ""} on={(v:string)=>setP({...p,tags:v})} />
-          </Card>
-
-          <Card title="Pricing & stock (₹ shown ÷ 100 = paise stored)">
-            <div className="grid grid-cols-3 gap-3">
-              <NumField label="Price (paise)" value={p.price} on={(v:number)=>setP({...p,price:v})} />
-              <NumField label="Compare at (paise)" value={p.compareAt ?? 0} on={(v:number)=>setP({...p,compareAt:v})} />
-              <NumField label="Cost (paise)" value={p.costPrice ?? 0} on={(v:number)=>setP({...p,costPrice:v})} />
-              <NumField label="Stock" value={p.stock} on={(v:number)=>setP({...p,stock:v})} />
-              <NumField label="Rating" value={p.rating} step={0.1} on={(v:number)=>setP({...p,rating:v})} />
-            </div>
-            <div className="flex gap-4 mt-2 text-sm">
-              <label className="flex items-center gap-2"><input type="checkbox" checked={p.isPublished} onChange={e=>setP({...p,isPublished:e.target.checked})} /> Published</label>
-              <label className="flex items-center gap-2"><input type="checkbox" checked={p.isHero} onChange={e=>setP({...p,isHero:e.target.checked})} /> Hero</label>
-            </div>
-          </Card>
-
-          <Card title="Story">
-            <TextArea label="Description (markdown)" value={p.description} on={(v:string)=>setP({...p,description:v})} rows={6} />
-            <TextArea label="Founder note" value={p.founderNote ?? ""} on={(v:string)=>setP({...p,founderNote:v})} rows={3} />
-          </Card>
-
-          <Card title="3 benefit bullets (PDP)">
-            {[0,1,2].map(i => (
-              <Field key={i} label={`Bullet ${i+1}`} value={p.bullets[i] ?? ""} on={(v:string)=> {
-                const next = [...p.bullets]; next[i] = v; setP({...p,bullets:next});
-              }} />
-            ))}
-          </Card>
-
-          <Card title="Images (one URL per line)">
-            <textarea
-              rows={4}
-              value={p.images.join("\n")}
-              onChange={e=>setP({...p,images:e.target.value.split("\n").map((s:string)=>s.trim()).filter(Boolean)})}
-              className="w-full border rounded-xl p-3 text-sm"
-            />
-            <Field label="Hero video URL (Cloudinary / YouTube embed)" value={p.videoUrl ?? ""} on={(v:string)=>setP({...p,videoUrl:v})} />
-          </Card>
-
-          <Card title="FAQ">
-            {(p.faq as any[]).concat([{q:"",a:""}]).slice(0,6).map((row:any, i:number) => (
-              <div key={i} className="grid grid-cols-2 gap-2 mb-2">
-                <input value={row.q} onChange={e=>{
-                  const next = [...p.faq]; next[i] = { ...row, q: e.target.value };
-                  setP({...p,faq:next});
-                }} placeholder="Question" className="border rounded-xl px-3 py-2 text-sm" />
-                <input value={row.a} onChange={e=>{
-                  const next = [...p.faq]; next[i] = { ...row, a: e.target.value };
-                  setP({...p,faq:next});
-                }} placeholder="Answer" className="border rounded-xl px-3 py-2 text-sm" />
-              </div>
-            ))}
-          </Card>
+      {/* Publish toggle — prominent */}
+      <div className="bg-white rounded-2xl border border-black/5 p-4 flex items-center justify-between">
+        <div>
+          <div className="font-semibold text-sm">{p.isPublished ? "Live on the website" : "Draft (hidden)"}</div>
+          <div className="text-xs text-muted">Turn on to show this piece in the public collection.</div>
         </div>
+        <button onClick={() => setP({ ...p, isPublished: !p.isPublished })}
+          className={`relative w-14 h-8 rounded-full transition ${p.isPublished ? "bg-green-600" : "bg-black/20"}`}>
+          <span className={`absolute top-1 w-6 h-6 bg-white rounded-full transition ${p.isPublished ? "left-7" : "left-1"}`} />
+        </button>
+      </div>
 
-        <div className="space-y-4">
-          <Card title="Quick actions">
-            <button onClick={seedReviews} className="w-full bg-ink text-white rounded-full py-2 text-sm">Seed 4 starter reviews</button>
-            <a href={`/admin/content?productId=${p.id}`} className="block text-center w-full border rounded-full py-2 text-sm">Generate hooks for this</a>
-            <a href={`/admin/suppliers?q=${encodeURIComponent(p.title)}`} className="block text-center w-full border rounded-full py-2 text-sm">Find suppliers</a>
-          </Card>
-
-          {p.supplier && (
-            <Card title="Linked supplier">
-              <div className="text-sm">
-                <div className="font-semibold">{p.supplier.name}</div>
-                <div className="text-muted">{p.supplier.city}, {p.supplier.state}</div>
-                <div>Phone: {p.supplier.phone}</div>
-                {p.supplier.gstNumber && <div>GST: {p.supplier.gstNumber}</div>}
-                {p.supplier.unitPrice != null && <div>Unit: ₹{Math.round(p.supplier.unitPrice/100)} · MOQ {p.supplier.moq ?? "—"}</div>}
-              </div>
-            </Card>
-          )}
+      {/* Photos */}
+      <Card title="Photos">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          {(p.images as string[]).map((src, i) => (
+            <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-black/10 bg-ivory-soft group">
+              <Image src={src} alt="" fill className="object-cover" />
+              <button onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"><X className="w-3.5 h-3.5" /></button>
+              {i === 0 && <span className="absolute bottom-1 left-1 bg-gold text-ink text-[9px] px-1.5 py-0.5 rounded-full">Main</span>}
+            </div>
+          ))}
+          <button onClick={() => fileRef.current?.click()} disabled={uploading}
+            className="aspect-square rounded-xl border-2 border-dashed border-gold/40 flex flex-col items-center justify-center text-muted text-xs hover:border-gold disabled:opacity-50">
+            {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Upload className="w-5 h-5 mb-1 text-gold-dark" />Upload</>}
+          </button>
         </div>
+        <input ref={fileRef} type="file" accept="image/*" multiple onChange={uploadPhotos} className="hidden" />
+        <p className="text-xs text-muted">First photo is the main image. Hover a photo to remove it.</p>
+      </Card>
+
+      {/* Basics */}
+      <Card title="Details">
+        <Field label="Name" value={p.title} on={(v: string) => setP({ ...p, title: v })} />
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs text-muted">Category</span>
+            <select value={p.category ?? ""} onChange={(e) => setP({ ...p, category: e.target.value })} className="mt-1 w-full border rounded-xl px-3 py-2 text-sm bg-white">
+              {catOptions.map((c: string) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <Field label="Short tagline" value={p.tagline ?? ""} on={(v: string) => setP({ ...p, tagline: v })} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block"><span className="text-xs text-muted">Price (₹)</span>
+            <input type="number" value={rupees(p.price)} onChange={(e) => setP({ ...p, price: Number(e.target.value) * 100 })} className="mt-1 w-full border rounded-xl px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="text-xs text-muted">Stock (pieces)</span>
+            <input type="number" value={p.stock} onChange={(e) => setP({ ...p, stock: Number(e.target.value) })} className="mt-1 w-full border rounded-xl px-3 py-2 text-sm" /></label>
+        </div>
+      </Card>
+
+      <Card title="Description">
+        <TextArea label="About this piece" value={p.description} on={(v: string) => setP({ ...p, description: v })} rows={5} />
+        {[0, 1, 2, 3].map((i) => (
+          <Field key={i} label={`Highlight ${i + 1}`} value={p.bullets[i] ?? ""} on={(v: string) => { const next = [...p.bullets]; next[i] = v; setP({ ...p, bullets: next }); }} />
+        ))}
+      </Card>
+
+      {/* Advanced */}
+      <button onClick={() => setShowAdv(!showAdv)} className="text-sm text-gold-dark">{showAdv ? "− Hide" : "+ Show"} advanced options</button>
+      {showAdv && (
+        <Card title="Advanced">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Field label="URL slug" value={p.slug} on={(v: string) => setP({ ...p, slug: v })} />
+            <label className="block"><span className="text-xs text-muted">Compare-at price (₹, optional)</span>
+              <input type="number" value={rupees(p.compareAt ?? 0)} onChange={(e) => setP({ ...p, compareAt: Number(e.target.value) * 100 })} className="mt-1 w-full border rounded-xl px-3 py-2 text-sm" /></label>
+          </div>
+          <Field label="Search tags (comma separated)" value={p.tags ?? ""} on={(v: string) => setP({ ...p, tags: v })} />
+          <Field label="Hero video URL (optional)" value={p.videoUrl ?? ""} on={(v: string) => setP({ ...p, videoUrl: v })} />
+          <TextArea label="Founder note (optional)" value={p.founderNote ?? ""} on={(v: string) => setP({ ...p, founderNote: v })} rows={2} />
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.isHero} onChange={(e) => setP({ ...p, isHero: e.target.checked })} /> Feature on homepage hero</label>
+        </Card>
+      )}
+
+      {/* Delete */}
+      <div className="pt-2">
+        <button onClick={remove} disabled={busy} className="inline-flex items-center gap-2 text-sm text-wine border border-wine/30 rounded-full px-4 py-2 hover:bg-wine/5"><Trash2 className="w-4 h-4" /> Delete this piece</button>
       </div>
     </div>
   );
@@ -157,13 +167,10 @@ export function ProductEditor({ product }: { product: any }) {
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return <div className="bg-white rounded-2xl p-5 border border-black/5 space-y-3"><div className="font-semibold text-sm">{title}</div>{children}</div>;
 }
-function Field({ label, value, on }: { label: string; value: string; on: (v:string)=>void }) {
-  return <label className="block"><span className="text-xs text-muted">{label}</span><input value={value} onChange={e=>on(e.target.value)} className="mt-1 w-full border rounded-xl px-3 py-2 text-sm" /></label>;
+function Field({ label, value, on }: { label: string; value: string; on: (v: string) => void }) {
+  return <label className="block"><span className="text-xs text-muted">{label}</span><input value={value} onChange={(e) => on(e.target.value)} className="mt-1 w-full border rounded-xl px-3 py-2 text-sm" /></label>;
 }
-function NumField({ label, value, on, step }: { label: string; value: number; on: (v:number)=>void; step?: number }) {
-  return <label className="block"><span className="text-xs text-muted">{label}</span><input type="number" step={step} value={value} onChange={e=>on(Number(e.target.value))} className="mt-1 w-full border rounded-xl px-3 py-2 text-sm" /></label>;
-}
-function TextArea({ label, value, on, rows = 4 }: { label: string; value: string; on:(v:string)=>void; rows?: number }) {
-  return <label className="block"><span className="text-xs text-muted">{label}</span><textarea rows={rows} value={value} onChange={e=>on(e.target.value)} className="mt-1 w-full border rounded-xl px-3 py-2 text-sm" /></label>;
+function TextArea({ label, value, on, rows = 4 }: { label: string; value: string; on: (v: string) => void; rows?: number }) {
+  return <label className="block"><span className="text-xs text-muted">{label}</span><textarea rows={rows} value={value} onChange={(e) => on(e.target.value)} className="mt-1 w-full border rounded-xl px-3 py-2 text-sm" /></label>;
 }
 function parseJSON<T>(s: string | null | undefined): T | null { if (!s) return null; try { return JSON.parse(s); } catch { return null; } }

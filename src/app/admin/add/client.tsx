@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { Mic, Square, Camera, Sparkles, Check, Copy } from "lucide-react";
+import { Mic, Square, Camera, Sparkles, Check, Copy, Loader2 } from "lucide-react";
 
 type GenResult = {
   product: { id: string; slug: string; title: string; price: number; category?: string | null };
@@ -20,7 +20,7 @@ export function AddClient() {
   const [transcript, setTranscript] = useState("");
 
   const [recording, setRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
   const [audioUrl, setAudioUrl] = useState("");
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -37,15 +37,17 @@ export function AddClient() {
   }
 
   async function startRec() {
+    setError("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mr = new MediaRecorder(stream);
       chunks.current = [];
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunks.current.push(e.data); };
-      mr.onstop = () => {
+      mr.onstop = async () => {
         const blob = new Blob(chunks.current, { type: "audio/webm" });
-        setAudioBlob(blob); setAudioUrl(URL.createObjectURL(blob));
+        setAudioUrl(URL.createObjectURL(blob));
         stream.getTracks().forEach((t) => t.stop());
+        await transcribe(blob);
       };
       mr.start(); mediaRef.current = mr; setRecording(true);
     } catch {
@@ -54,14 +56,30 @@ export function AddClient() {
   }
   function stopRec() { mediaRef.current?.stop(); setRecording(false); }
 
+  // Voice → text (voice2wa transcription) so the owner can see/confirm what was heard
+  async function transcribe(blob: Blob) {
+    setTranscribing(true); setError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", new File([blob], "voice.webm", { type: "audio/webm" }));
+      fd.append("language", language);
+      const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+      const j = await res.json();
+      if (!res.ok) setError(j.error || "Could not transcribe — type the details instead.");
+      else setTranscript((prev) => (prev ? prev + " " : "") + (j.text || ""));
+    } catch {
+      setError("Transcription failed — type the details instead.");
+    } finally { setTranscribing(false); }
+  }
+
   async function generate() {
     if (!photo) { setError("Please add a photo first."); return; }
+    if (!transcript.trim()) { setError("Record or type the details first."); return; }
     setLoading(true); setError(""); setResult(null); setPublished(false);
     try {
       const fd = new FormData();
       fd.append("photo", photo);
-      if (audioBlob) fd.append("audio", new File([audioBlob], "voice.webm", { type: "audio/webm" }));
-      if (transcript.trim()) fd.append("transcript", transcript.trim());
+      fd.append("transcript", transcript.trim());
       fd.append("language", language);
       const res = await fetch("/api/generate-product", { method: "POST", body: fd });
       const j = await res.json();
@@ -78,11 +96,11 @@ export function AddClient() {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isPublished: true })
     });
-    if (res.ok) setPublished(true); else setError("Could not publish — try the product editor.");
+    if (res.ok) setPublished(true); else setError("Could not publish — open it in Products to publish.");
   }
 
   function reset() {
-    setPhoto(null); setPhotoUrl(""); setAudioBlob(null); setAudioUrl("");
+    setPhoto(null); setPhotoUrl(""); setAudioUrl("");
     setTranscript(""); setResult(null); setPublished(false); setError("");
   }
 
@@ -90,7 +108,6 @@ export function AddClient() {
     <div className="grid lg:grid-cols-2 gap-6">
       {/* LEFT: capture */}
       <div className="bg-white rounded-2xl border border-black/5 p-5 space-y-5">
-        {/* Photo */}
         <div>
           <label className="block text-sm font-semibold mb-2">1 · Photo</label>
           <label className="group relative flex items-center justify-center aspect-video rounded-xl border-2 border-dashed border-gold/40 bg-ivory-soft cursor-pointer overflow-hidden">
@@ -103,13 +120,12 @@ export function AddClient() {
           </label>
         </div>
 
-        {/* Voice */}
         <div>
           <label className="block text-sm font-semibold mb-2">2 · Speak the details</label>
           <div className="flex items-center gap-3">
             {!recording ? (
-              <button onClick={startRec} className="inline-flex items-center gap-2 rounded-full bg-ink text-gold-light px-5 py-2.5 text-sm font-medium">
-                <Mic className="w-4 h-4" /> Record
+              <button onClick={startRec} disabled={transcribing} className="inline-flex items-center gap-2 rounded-full bg-ink text-gold-light px-5 py-2.5 text-sm font-medium disabled:opacity-50">
+                <Mic className="w-4 h-4" /> {audioUrl ? "Record again" : "Record"}
               </button>
             ) : (
               <button onClick={stopRec} className="inline-flex items-center gap-2 rounded-full bg-wine text-white px-5 py-2.5 text-sm font-medium animate-pulse">
@@ -125,15 +141,20 @@ export function AddClient() {
           </div>
           {audioUrl && <audio src={audioUrl} controls className="mt-3 w-full h-9" />}
           <p className="text-xs text-muted mt-2">e.g. “Halki neeli Polki choker, bridal, ₹1800 piece, minimum 12 pieces, bahut halki hai.”</p>
-          <textarea value={transcript} onChange={(e) => setTranscript(e.target.value)} placeholder="…or type the details here instead"
-            className="mt-3 w-full text-sm border border-black/10 rounded-xl p-3 min-h-[70px]" />
+
+          <div className="mt-3">
+            <span className="text-xs text-muted">{transcribing ? "Listening…" : "What we heard (edit if needed)"}</span>
+            <textarea value={transcript} onChange={(e) => setTranscript(e.target.value)} placeholder="Your spoken details will appear here — or type them"
+              className="mt-1 w-full text-sm border border-black/10 rounded-xl p-3 min-h-[80px]" />
+            {transcribing && <div className="text-xs text-gold-dark inline-flex items-center gap-1 mt-1"><Loader2 className="w-3 h-3 animate-spin" /> converting voice to text…</div>}
+          </div>
         </div>
 
         {error && <div className="bg-brand-light text-brand-dark text-sm rounded-xl p-3">{error}</div>}
 
-        <button onClick={generate} disabled={loading || !photo}
+        <button onClick={generate} disabled={loading || transcribing || !photo}
           className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gold text-ink px-6 py-3 font-semibold text-sm disabled:opacity-50">
-          <Sparkles className="w-4 h-4" /> {loading ? "Generating listing…" : "Generate listing"}
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating listing…</> : <><Sparkles className="w-4 h-4" /> Generate listing</>}
         </button>
       </div>
 
@@ -176,10 +197,6 @@ export function AddClient() {
               </div>
               <p className="text-sm text-muted mt-1 whitespace-pre-line">{result.whatsappCaption}</p>
             </div>
-
-            {result.transcript && (
-              <p className="text-xs text-muted"><span className="font-semibold text-ink">Heard:</span> “{result.transcript}”</p>
-            )}
 
             {!published ? (
               <div className="flex gap-2 pt-1">
