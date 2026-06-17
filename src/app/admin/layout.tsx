@@ -27,13 +27,8 @@ function AdminNav() {
   const links = [
     { href: "/admin", label: "Dashboard" },
     { href: "/admin/add", label: "✦ Add (Photo+Voice)" },
-    { href: "/admin/products", label: "Products" },
-    { href: "/admin/trending", label: "Trending 🔥" },
-    { href: "/admin/suppliers", label: "Suppliers" },
-    { href: "/admin/orders", label: "Orders" },
-    { href: "/admin/reviews", label: "Reviews" },
-    { href: "/admin/content", label: "Content Studio" }
-  ];
+    { href: "/admin/products", label: "Products" }
+  ]
   return (
     <nav className="bg-white border-b border-black/5">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">

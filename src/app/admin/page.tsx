@@ -1,23 +1,24 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { VoiceButton } from "@/components/VoiceButton";
-import { Camera, Boxes, Eye, FileEdit, Inbox, ArrowRight } from "lucide-react";
+import { Camera, Boxes, Eye, FileEdit, Layers, ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
-  const [live, drafts, total, leads] = await Promise.all([
+  const [live, drafts, total, published] = await Promise.all([
     db.product.count({ where: { isPublished: true } }),
     db.product.count({ where: { isPublished: false } }),
     db.product.count(),
-    db.lead.count()
+    db.product.findMany({ where: { isPublished: true }, select: { category: true } })
   ]);
+  const categories = new Set(published.map((p) => p.category).filter(Boolean)).size;
 
   const stats = [
     { label: "Live on site", value: live, icon: <Eye className="w-5 h-5" /> },
     { label: "Drafts", value: drafts, icon: <FileEdit className="w-5 h-5" /> },
     { label: "Total pieces", value: total, icon: <Boxes className="w-5 h-5" /> },
-    { label: "Enquiries", value: leads, icon: <Inbox className="w-5 h-5" /> }
+    { label: "Categories", value: categories, icon: <Layers className="w-5 h-5" /> }
   ];
 
   return (
@@ -27,7 +28,6 @@ export default async function AdminHome() {
         <p className="text-muted text-sm mt-1">Run everything by voice — or do it yourself below.</p>
       </div>
 
-      {/* HERO: voice + add */}
       <div className="grid lg:grid-cols-2 gap-5">
         <VoiceButton />
         <Link href="/admin/add" className="group relative overflow-hidden rounded-3xl bg-white border border-gold/30 p-8 transition hover:shadow-2xl hover:border-gold">
@@ -45,7 +45,6 @@ export default async function AdminHome() {
         </Link>
       </div>
 
-      {/* STATS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-black/5 p-5">
@@ -58,14 +57,11 @@ export default async function AdminHome() {
         ))}
       </div>
 
-      {/* MANAGE */}
       <div className="bg-white rounded-2xl border border-black/5 p-5">
         <div className="font-semibold text-sm mb-3">Manage manually</div>
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/products" className="inline-flex items-center gap-1.5 bg-ink text-gold-light rounded-full px-4 py-2 text-sm font-medium">Manage products <ArrowRight className="w-4 h-4" /></Link>
           <Link href="/admin/add" className="inline-flex items-center gap-1.5 border border-black/15 rounded-full px-4 py-2 text-sm">Add a piece</Link>
-          <Link href="/admin/orders" className="inline-flex items-center gap-1.5 border border-black/15 rounded-full px-4 py-2 text-sm">Orders</Link>
-          <Link href="/admin/reviews" className="inline-flex items-center gap-1.5 border border-black/15 rounded-full px-4 py-2 text-sm">Reviews</Link>
         </div>
       </div>
     </div>

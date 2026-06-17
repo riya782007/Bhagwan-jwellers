@@ -20,9 +20,9 @@ ACTION TIERS:
 - "guide" -> NEVER executed. Only explain + send them to the right screen. Intents: "delete", "supplier" (suppliers, cost price, sourcing, supply chain), "billing".
 - "clarify" -> ask one short question when the product or value is ambiguous.
 
-ROUTES you may set: "/admin/add", "/admin/products/{id}", "/admin/products", "/admin/orders", "/admin/reviews".
+ROUTES you may set: "/admin/add", "/admin/products", "/admin/products/{id}". There are NO orders/suppliers/billing screens — those are handled offline; for such requests set route null and explain briefly.
 - add_product -> route "/admin/add".
-- open_editor / delete / edit_field / supplier -> route "/admin/products/{id}" for the matched product.
+- open_editor / delete / edit_field -> route "/admin/products/{id}" for the matched product. supplier / billing -> route null, explain it is handled offline.
 - navigate -> the relevant route.
 
 VALUES: set_stock value = number of pieces. set_price value = price in rupees (number). edit_field: also set "field" to "title" | "tagline" | "description" and "value" to the new text.
