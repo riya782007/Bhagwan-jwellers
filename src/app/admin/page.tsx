@@ -1,83 +1,73 @@
 import { db } from "@/lib/db";
-import { inr } from "@/lib/format";
 import Link from "next/link";
+import { VoiceButton } from "@/components/VoiceButton";
+import { Camera, Boxes, Eye, FileEdit, Inbox, ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() {
-  const [orders, products, trendingHot, recentOrders] = await Promise.all([
-    db.order.aggregate({ _sum: { total: true }, _count: { _all: true } }),
+export default async function AdminHome() {
+  const [live, drafts, total, leads] = await Promise.all([
     db.product.count({ where: { isPublished: true } }),
-    db.trendingProduct.findMany({ where: { status: "NEW" }, orderBy: { score: "desc" }, take: 6 }),
-    db.order.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { customer: true } })
+    db.product.count({ where: { isPublished: false } }),
+    db.product.count(),
+    db.lead.count()
   ]);
 
+  const stats = [
+    { label: "Live on site", value: live, icon: <Eye className="w-5 h-5" /> },
+    { label: "Drafts", value: drafts, icon: <FileEdit className="w-5 h-5" /> },
+    { label: "Total pieces", value: total, icon: <Boxes className="w-5 h-5" /> },
+    { label: "Enquiries", value: leads, icon: <Inbox className="w-5 h-5" /> }
+  ];
+
   return (
-    <div className="space-y-6">
-      <h1 className="font-black text-2xl">Dashboard</h1>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Total revenue" value={inr(orders._sum.total ?? 0)} />
-        <Stat label="Total orders" value={String(orders._count._all)} />
-        <Stat label="Live products" value={String(products)} />
-        <Stat label="Trending unimported" value={String(trendingHot.length)} />
+    <div className="space-y-8">
+      <div>
+        <h1 className="font-serif text-3xl text-ink">Your store</h1>
+        <p className="text-muted text-sm mt-1">Run everything by voice — or do it yourself below.</p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card title="🔥 Top trending — ready to import" cta={{ href: "/admin/trending", label: "See all →" }}>
-          <ul className="text-sm divide-y">
-            {trendingHot.length === 0 && <li className="text-muted py-2">No new candidates. Run a scan from the Trending tab.</li>}
-            {trendingHot.map(t => (
-              <li key={t.id} className="py-2 flex items-center justify-between">
-                <span className="line-clamp-1">{t.title}</span>
-                <span className="text-xs font-bold text-brand">{Math.round(t.score)}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card title="Recent orders" cta={{ href: "/admin/orders", label: "All orders →" }}>
-          <ul className="text-sm divide-y">
-            {recentOrders.length === 0 && <li className="text-muted py-2">No orders yet — ship the first short!</li>}
-            {recentOrders.map(o => (
-              <li key={o.id} className="py-2 flex items-center justify-between">
-                <span><b>{o.number}</b> · {o.customer.name} · {o.status}</span>
-                <span>{inr(o.total)}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+      {/* HERO: voice + add */}
+      <div className="grid lg:grid-cols-2 gap-5">
+        <VoiceButton />
+        <Link href="/admin/add" className="group relative overflow-hidden rounded-3xl bg-white border border-gold/30 p-8 transition hover:shadow-2xl hover:border-gold">
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-gold/10 group-hover:bg-gold/20 transition" />
+          <div className="relative flex items-center gap-5">
+            <span className="grid place-items-center w-20 h-20 rounded-full border-2 border-gold text-gold-dark group-hover:scale-110 transition">
+              <Camera className="w-9 h-9" />
+            </span>
+            <div>
+              <div className="text-gold-dark text-xs uppercase tracking-luxe">Add a piece</div>
+              <div className="font-serif text-2xl sm:text-3xl mt-1 text-ink">Photo + voice</div>
+              <div className="text-muted text-sm mt-1">Snap a photo, speak the details — the assistant writes the listing & picks the category.</div>
+            </div>
+          </div>
+        </Link>
       </div>
 
-      <Card title="Quick actions">
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/admin/trending" className="bg-ink text-white rounded-full px-4 py-2">Run trending scan</Link>
-          <Link href="/admin/products" className="border rounded-full px-4 py-2">Manage products</Link>
-          <Link href="/admin/content" className="border rounded-full px-4 py-2">Generate hooks</Link>
-          <Link href="/admin/suppliers" className="border rounded-full px-4 py-2">Find suppliers</Link>
+      {/* STATS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s) => (
+          <div key={s.label} className="bg-white rounded-2xl border border-black/5 p-5">
+            <div className="flex items-center justify-between text-gold-dark">
+              <span className="text-xs uppercase tracking-wide text-muted">{s.label}</span>
+              {s.icon}
+            </div>
+            <div className="font-serif text-3xl text-ink mt-2">{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* MANAGE */}
+      <div className="bg-white rounded-2xl border border-black/5 p-5">
+        <div className="font-semibold text-sm mb-3">Manage manually</div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/products" className="inline-flex items-center gap-1.5 bg-ink text-gold-light rounded-full px-4 py-2 text-sm font-medium">Manage products <ArrowRight className="w-4 h-4" /></Link>
+          <Link href="/admin/add" className="inline-flex items-center gap-1.5 border border-black/15 rounded-full px-4 py-2 text-sm">Add a piece</Link>
+          <Link href="/admin/orders" className="inline-flex items-center gap-1.5 border border-black/15 rounded-full px-4 py-2 text-sm">Orders</Link>
+          <Link href="/admin/reviews" className="inline-flex items-center gap-1.5 border border-black/15 rounded-full px-4 py-2 text-sm">Reviews</Link>
         </div>
-      </Card>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-white rounded-2xl p-4 border border-black/5">
-      <div className="text-xs text-muted">{label}</div>
-      <div className="font-black text-xl mt-1">{value}</div>
-    </div>
-  );
-}
-
-function Card({ title, children, cta }: { title: string; children: React.ReactNode; cta?: { href: string; label: string } }) {
-  return (
-    <div className="bg-white rounded-2xl p-5 border border-black/5">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-bold">{title}</h2>
-        {cta && <Link href={cta.href} className="text-xs text-brand">{cta.label}</Link>}
       </div>
-      {children}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, Square, Loader2, Check, X, ArrowRight, Sparkles } from "lucide-react";
 
@@ -21,6 +21,13 @@ export function AdminVoice() {
 
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    const handler = () => { if (!mediaRef.current || mediaRef.current.state !== "recording") startRec(); };
+    window.addEventListener("vbrain:open", handler as EventListener);
+    return () => window.removeEventListener("vbrain:open", handler as EventListener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function resetConversation() { setHeard(""); setAction(null); setDone(null); setError(""); }
 
